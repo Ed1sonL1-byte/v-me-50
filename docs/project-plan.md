@@ -65,19 +65,15 @@ This architecture is planned; the gateway, authentication flow, and FastAPI appl
 
 ## Planned dataset
 
-We plan to use [Movie Plot Embeddings Dataset by NiklasAbraham on Hugging Face](https://huggingface.co/datasets/NiklasAbraham/MoviePlotEmbeddingsDataset) as the initial data source for our movie recommendation RAG pipeline.
+[Movie Plot Embeddings Dataset on Hugging Face](https://huggingface.co/datasets/NiklasAbraham/MoviePlotEmbeddingsDataset)
 
-According to the publisher's dataset card, it contains approximately 92,000 movies from 1930–2024, with plot text and metadata such as titles, genres, directors, actors, and ratings. It also provides precomputed 1024-dimensional BGE-M3 embeddings and movie identifiers for linking embeddings to metadata. These are publisher-reported details; actual row counts, field completeness, and embedding coverage still need to be verified after download.
+### Preprocessing plan — In Progress
 
-### Initial implementation plan
-
-1. Download the metadata CSV and inspect the schema, missing values, duplicates, and plot quality. Record the dataset revision and attribution requirements. Store source files in Supabase Storage and cleaned records in Supabase Postgres. The dataset card labels it CC BY-NC 4.0 and lists source-specific licensing requirements.
-2. Start with 5,000–10,000 movies with usable plots and the metadata required for the initial demonstration, then expand after validating the pipeline.
-3. Evaluate reusing the supplied dense embeddings, joining them to metadata by `movie_id` through the accompanying movie-ID array. Verify dimensions and alignment, and encode user queries using the same BGE-M3 configuration. If we choose another encoder, regenerate movie embeddings with that encoder.
-4. Index the normalized movie records in Elasticsearch and store vectors with metadata in the selected vector database. Use LangChain to coordinate keyword and semantic retrieval, apply supported metadata filters, and merge and deduplicate candidates by movie ID before ranking.
-5. Use an LLM to produce ranked recommendations grounded in retrieved records, showing plot evidence and available source links for each recommendation.
-
-The Hugging Face viewer showed a schema mismatch during our initial review, so the planned ingestion path uses the underlying CSV and NumPy files rather than relying on the viewer's automatic schema. This is a proposed data plan; no dataset has been downloaded or validated yet.
+1. Remove duplicate movie records and exclude entries missing a title or usable plot. Keep missing optional metadata as null rather than inventing values.
+2. Clean plot text by removing formatting artifacts and normalizing whitespace. Standardize movie IDs, release dates, genres, cast, and director fields.
+3. Create retrieval documents from the cleaned plots and metadata, preserving movie IDs and source links. Split long plots into chunks linked to their original movie.
+4. Reuse existing embeddings only when they match the indexed text and movie IDs; generate new embeddings for modified text or new chunks using a consistent encoder.
+5. Store source files in Supabase Storage and cleaned records in Supabase Postgres, then build Elasticsearch and vector indexes using shared movie IDs.
 
 ## Milestones and completion criteria
 
