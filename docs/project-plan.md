@@ -11,7 +11,23 @@ Build a web application that translates natural-language movie preferences into 
 - Ranked recommendations with movie identifiers, titles, match explanations, and supporting evidence.
 - A web interface for entering requests and inspecting results.
 
-User accounts, long-term viewing history, and streaming-service availability are outside the initial scope unless the team explicitly adds them.
+User authentication is included in the initial scope. Long-term viewing history and streaming-service availability are outside the initial scope unless the team explicitly adds them.
+
+## Planned application architecture
+
+```text
+Frontend (web UI) → Gateway (user authentication) → FastAPI backend
+                                                        ↓
+                                              RAG pipeline
+                                              ↙          ↘
+                                     Vector database     LLM
+```
+
+- **Frontend:** Provides the login experience, accepts movie preferences, and displays recommendations with supporting evidence. API requests go through the gateway.
+- **Gateway:** Sits between the frontend and backend, validates user credentials or sessions/tokens for protected requests, rejects unauthenticated requests, and forwards authenticated requests with trusted user identity to the backend. The authentication provider and gateway implementation will be selected during implementation.
+- **Backend:** Uses Python and FastAPI to implement the movie recommendation API, coordinate retrieval and LLM generation, and return ranked movies with explanations and evidence. The backend accepts user identity only through a verified gateway connection, not from arbitrary client-supplied headers, and enforces any user-specific access rules.
+
+This architecture is planned; the gateway, authentication flow, and FastAPI application have not yet been implemented.
 
 ## Planned dataset
 
@@ -36,6 +52,7 @@ The Hugging Face viewer showed a schema mismatch during our initial review, so t
 | Data selection | Record the exact dataset source, revision, license, schema, missing fields, and duplicate handling |
 | Retrieval baseline | Reproducible ingestion and search return movie records for a fixed set of example queries |
 | RAG recommendations | Generated recommendations reference retrieved records and expose supporting evidence |
+| Authentication and API | Frontend requests pass through the authentication gateway to the FastAPI backend; protected requests require valid authentication |
 | Web demonstration | A user can submit a request and inspect ranked results, loading states, and useful error messages |
 | Evaluation | Report measured relevance, constraint satisfaction, faithfulness, and latency with the evaluation procedure |
 

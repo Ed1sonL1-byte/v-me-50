@@ -40,7 +40,7 @@ Recommendations should refer to retrieved movie records and avoid inventing plot
 
 ## Technology candidates
 
-These are options under consideration, not finalized dependencies.
+FastAPI is selected for the backend, with a gateway for user authentication. Other components remain under consideration.
 
 | Component | Candidate / decision needed |
 | --- | --- |
@@ -48,7 +48,9 @@ These are options under consideration, not finalized dependencies.
 | Retrieval | Semantic search over movie plots and available metadata |
 | Vector database | Qdrant, Pinecone, or pgvector |
 | Language model | To be selected for query understanding and recommendation generation |
-| Application | Web interface with a backend recommendation API; frameworks to be selected |
+| Frontend | Web interface; framework to be selected |
+| Gateway | User authentication between the frontend and backend; implementation to be selected |
+| Backend | Python with FastAPI for the recommendation API and RAG orchestration |
 
 ## Development roadmap
 
