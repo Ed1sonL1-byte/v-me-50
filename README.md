@@ -40,17 +40,20 @@ Recommendations should refer to retrieved movie records and avoid inventing plot
 
 ## Technology candidates
 
-FastAPI is selected for the backend, with a gateway for user authentication. Other components remain under consideration.
+FastAPI is selected for the backend, LangChain for RAG orchestration, Elasticsearch for keyword retrieval, and a gateway for user authentication. Other components remain under consideration.
 
 | Component | Candidate / decision needed |
 | --- | --- |
 | Dataset | A Hugging Face movie dataset, such as the Movie Plot Embeddings Dataset; verify the exact dataset, license, fields, and coverage before use |
-| Retrieval | Semantic search over movie plots and available metadata |
+| Retrieval | Hybrid keyword and semantic search, with candidate merging and deduplication |
+| Keyword search | Elasticsearch over movie titles, plots, and metadata |
+| Dataset storage | Supabase Storage for source files and Supabase Postgres for cleaned movie records |
 | Vector database | Qdrant, Pinecone, or pgvector |
 | Language model | To be selected for query understanding and recommendation generation |
 | Frontend | Web interface; framework to be selected |
 | Gateway | User authentication between the frontend and backend; implementation to be selected |
 | Backend | Python with FastAPI for the recommendation API and RAG orchestration |
+| RAG orchestration | LangChain within the FastAPI backend for retrieval, prompt construction, and LLM calls |
 
 ## Development roadmap
 

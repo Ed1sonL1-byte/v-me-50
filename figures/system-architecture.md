@@ -1,0 +1,40 @@
+# V Me 50 - System Architecture
+
+Proposed architecture; not yet implemented. The gateway handles authentication, FastAPI hosts the LangChain RAG pipeline, and Supabase stores the dataset. Elasticsearch and the vector database provide hybrid retrieval.
+
+```mermaid
+flowchart TB
+    frontend["Frontend<br/>Login, preferences, recommendations"]
+    gateway["Gateway<br/>User authentication"]
+    subgraph backend["FastAPI Backend - Python"]
+        api["Recommendation API"]
+        chain["LangChain RAG Pipeline<br/>Understand query, retrieve, merge and rank"]
+        api <-->|Request / recommendations with evidence| chain
+    end
+    frontend <-->|HTTPS request / response| gateway
+    gateway <-->|Authenticated request / response| api
+    chain <-->|Text / query vector| embedding["Embedding Model"]
+    chain <-->|Semantic search / candidates| vector[("Vector Database")]
+    chain <-->|Keyword search / candidates| elastic[("Elasticsearch")]
+    chain <-->|Prompt and evidence / generated output| llm["LLM"]
+    chain <-->|Movie IDs / canonical records| postgres[("Supabase Postgres<br/>Movie plots and metadata")]
+
+    subgraph ingestion["Dataset Import and Indexing"]
+        dataset["Hugging Face<br/>MoviePlotEmbeddingsDataset"]
+        storage[("Supabase Storage<br/>Source dataset files")]
+        clean["Validate and Normalize"]
+        indexer["Build Search Indexes<br/>Shared movie IDs"]
+        dataset -->|Import files| storage
+        storage -->|Source records| clean
+    end
+    clean -->|Cleaned movie records| postgres
+    postgres -->|Canonical records| indexer
+    storage -->|Precomputed vectors or re-embed| indexer
+    indexer -.->|Vectors and metadata| vector
+    indexer -.->|Text and metadata| elastic
+
+    classDef service fill:#eff6ff,stroke:#2563eb,color:#0f172a
+    classDef data fill:#ecfdf5,stroke:#059669,color:#0f172a
+    class frontend,gateway,api,chain,embedding,llm service
+    class vector,elastic,postgres,storage data
+```
