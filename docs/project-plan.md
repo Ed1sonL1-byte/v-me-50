@@ -39,12 +39,6 @@ The Hugging Face viewer showed a schema mismatch during our initial review, so t
 | Web demonstration | A user can submit a request and inspect ranked results, loading states, and useful error messages |
 | Evaluation | Report measured relevance, constraint satisfaction, faithfulness, and latency with the evaluation procedure |
 
-## Suggested evaluation
-
-Prepare a fixed set of requests covering genres, themes, named-movie comparisons, positive and negative preferences, conflicting constraints, and requests with insufficient evidence. Reserve a subset for final evaluation rather than repeatedly tuning against it.
-
-Compare a simple keyword or genre baseline against semantic retrieval and the complete RAG pipeline. Use a documented human-rating rubric for recommendation relevance and preference satisfaction. Check whether explanation claims are supported by retrieved fields, and measure end-to-end latency. Record dataset revisions, model settings, retrieval settings, and evaluation queries so results can be reproduced.
-
 ## Open decisions
 
 - Validate the planned dataset's actual coverage, especially actor/director metadata, and pin a revision.
