@@ -39,14 +39,6 @@ The Hugging Face viewer showed a schema mismatch during our initial review, so t
 | Web demonstration | A user can submit a request and inspect ranked results, loading states, and useful error messages |
 | Evaluation | Report measured relevance, constraint satisfaction, faithfulness, and latency with the evaluation procedure |
 
-## Open decisions
-
-- Validate the planned dataset's actual coverage, especially actor/director metadata, and pin a revision.
-- Embedding model, vector database, and retrieval/ranking strategy.
-- LLM provider, cost constraints, and configuration.
-- Frontend and backend frameworks.
-- Team responsibilities and course deadlines.
-
 ## Data and configuration handling
 
 Keep API keys in local environment variables or an ignored `.env` file. Commit only placeholder configuration. Keep downloaded datasets and generated indexes out of Git; document how to obtain and rebuild them after selecting the data source.
