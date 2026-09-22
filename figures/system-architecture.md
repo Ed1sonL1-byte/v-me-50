@@ -13,7 +13,6 @@ flowchart TB
     end
     frontend <-->|HTTPS request / response| gateway
     gateway <-->|Authenticated request / response| api
-    chain <-->|Text / query vector| embedding["Embedding Model"]
     chain <-->|Semantic search / candidates| vector[("Vector Database")]
     chain <-->|Keyword search / candidates| elastic[("Elasticsearch")]
     chain <-->|Prompt and evidence / generated output| llm["LLM"]
