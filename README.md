@@ -27,33 +27,32 @@ Users will describe what they want to watch. The system will retrieve relevant m
 ## Proposed pipeline
 
 ```text
-Movie dataset → Cleaning and normalization → Embeddings → Vector database
-                                                               ↑
-User request → Query understanding → Semantic retrieval ─────────┘
-                                           ↓
-                              Ranking and grounded generation
-                                           ↓
-                           Recommendations + supporting evidence
+Offline: Dataset → Cleaning → Supabase records → Movie embeddings → Vector index
+
+Online:  User request → Structured intent → Reference movie lookup (if needed)
+                     → Query embedding + filters → Vector retrieval
+                     → Constraint checks + preference reranking
+                     → Recommendations with supporting evidence
 ```
 
 Recommendations should refer to retrieved movie records and avoid inventing plot details or metadata. When the dataset cannot support a requested constraint, the system should make that limitation clear.
 
 ## Technology candidates
 
-FastAPI is selected for the backend, LangChain for RAG orchestration, Elasticsearch for keyword retrieval, and a gateway for user authentication. Other components remain under consideration.
+FastAPI is selected for the backend, LangChain for RAG orchestration, and a gateway for user authentication. Other components remain under consideration.
 
 | Component | Candidate / decision needed |
 | --- | --- |
 | Dataset | A Hugging Face movie dataset, such as the Movie Plot Embeddings Dataset; verify the exact dataset, license, fields, and coverage before use |
-| Retrieval | Hybrid keyword and semantic search, with candidate merging and deduplication |
-| Keyword search | Elasticsearch over movie titles, plots, and metadata |
+| Retrieval | Semantic vector search with metadata filters and preference-based reranking |
+| Movie lookup | Supabase queries for reference titles and structured metadata |
 | Dataset storage | Supabase Storage for source files and Supabase Postgres for cleaned movie records |
 | Vector database | Qdrant, Pinecone, or pgvector |
 | Language model | To be selected for query understanding and recommendation generation |
 | Frontend | Web interface; framework to be selected |
 | Gateway | User authentication between the frontend and backend; implementation to be selected |
 | Backend | Python with FastAPI for the recommendation API and RAG orchestration |
-| RAG orchestration | LangChain within the FastAPI backend for retrieval, prompt construction, and LLM calls |
+| RAG orchestration | LangChain within FastAPI for intent parsing, query embedding, filtered retrieval, reranking, and LLM calls |
 
 ## Development roadmap
 
