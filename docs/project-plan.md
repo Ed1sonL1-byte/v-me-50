@@ -21,32 +21,25 @@ flowchart TB
     gateway["Gateway<br/>User authentication"]
     subgraph backend["FastAPI Backend - Python"]
         api["Recommendation API"]
-        chain["LangChain RAG Pipeline<br/>Parse intent and resolve reference movies<br/>Query embedding, filtered retrieval and reranking"]
+        chain["LangChain RAG Pipeline<br/>Parse intent, resolve reference title<br/>Embed query, retrieve, filter and select"]
         api <-->|Request / recommendations with evidence| chain
     end
     frontend <-->|HTTPS request / response| gateway
     gateway <-->|Authenticated request / response| api
-    chain <-->|Query vector and filters / candidates| vector[("Vector Database")]
-    chain <-->|Prompt and evidence / generated output| llm["LLM"]
-    chain <-->|Title lookup and movie IDs / canonical records| postgres[("Supabase Postgres<br/>Movie plots and metadata")]
+    chain <-->|Title lookup and filtered vector search| postgres[("Supabase Postgres + pgvector<br/>Movie records and vectors")]
+    chain <-->|Intent and recommendation prompts / structured output| llm["LLM provider - to be configured"]
 
-    subgraph ingestion["Dataset Import and Indexing"]
+    subgraph ingestion["Dataset Import - first 5,000 movies complete"]
         dataset["Hugging Face<br/>MoviePlotEmbeddingsDataset"]
-        storage[("Supabase Storage<br/>Source dataset files")]
-        clean["Validate and Normalize"]
-        indexer["Build Vector Index<br/>Shared movie IDs"]
-        dataset -->|Import files| storage
-        storage -->|Source records| clean
+        clean["Validate movie IDs<br/>Normalize records<br/>Reuse aligned BGE-M3 vectors"]
+        dataset -->|Source CSV and NumPy files| clean
     end
-    clean -->|Cleaned movie records| postgres
-    postgres -->|Canonical records| indexer
-    storage -->|Precomputed vectors or re-embed| indexer
-    indexer -.->|Vectors and metadata| vector
+    clean -->|Cleaned records and vectors| postgres
 
     classDef service fill:#eff6ff,stroke:#2563eb,color:#0f172a
     classDef data fill:#ecfdf5,stroke:#059669,color:#0f172a
     class frontend,gateway,api,chain,llm service
-    class vector,postgres,storage data
+    class postgres,dataset,clean data
 ```
 
 - **Frontend:** Provides the login experience, accepts movie preferences, and displays recommendations with supporting evidence. API requests go through the gateway.
@@ -54,7 +47,7 @@ flowchart TB
 - **Backend:** Uses Python and FastAPI to implement the movie recommendation API, coordinate retrieval and LLM generation, and return ranked movies with explanations and evidence. The backend accepts user identity only through a verified gateway connection, not from arbitrary client-supplied headers, and enforces any user-specific access rules.
 - **LangChain:** Runs within FastAPI to parse user intent, resolve reference movies, encode semantic queries, retrieve candidates with metadata filters, and rerank them against the user's preferences. It coordinates LLM calls for intent extraction and evidence-grounded recommendation generation. Query embedding is an internal retrieval step, not a separate application service.
 - **Retrieval:** The first version uses vector search with structured metadata filters. Movie titles, actors, and directors can be looked up or filtered through database queries. Elasticsearch is outside the initial implementation scope; it can be reconsidered if testing reveals a need for dedicated keyword search.
-- **Supabase:** Hosts the movie dataset as the source of truth. We plan to retain downloaded dataset files in Supabase Storage and load cleaned movie records into Supabase Postgres. An indexing job derives the vector index from these records using shared movie IDs. FastAPI reads canonical movie details and evidence from Supabase when assembling recommendations. Supabase is selected for data storage; the gateway continues to own authentication enforcement.
+- **Supabase:** Hosts the movie dataset as the source of truth. The first 5,000 cleaned movie records and aligned vectors are in Supabase Postgres with pgvector. The full source files remain on Hugging Face because the CSV exceeds the Free Plan per-file upload limit. FastAPI reads canonical movie details and evidence from Supabase when assembling recommendations. Supabase is selected for data storage; the gateway continues to own authentication enforcement.
 
 Standalone Markdown diagram: [System architecture](../figures/system-architecture.md).
 
@@ -65,7 +58,7 @@ This architecture is planned; the gateway, authentication flow, and FastAPI appl
 1. **Parse intent.** Use an LLM to extract a semantic query, reference movie title (if any), hard filters, and soft preferences. Validate the structured output in FastAPI against allowed fields, types, and operators before building database queries. Preserve the original request for the final preference check.
 2. **Resolve reference movies.** Look up named movies in Supabase and read their actual plots and metadata. Ask for clarification when a title is ambiguous or cannot be resolved reliably; do not invent a reference plot.
 3. **Build the semantic query.** Combine the user's desired themes with relevant evidence from the reference movie. Emphasize the requested aspects rather than copying the entire reference plot. Keep hard constraints and negative preferences separately so they are not lost in the embedding.
-4. **Embed and retrieve.** Encode the semantic query using the same model and compatible settings as the indexed movie text. If reusing the dataset's BGE-M3 vectors, match their encoding configuration. Apply supported hard filters during retrieval, exclude the resolved reference movie when appropriate, and deduplicate plot chunks by movie ID. Start with approximately 20 candidate movies as a tunable setting.
+4. **Embed and retrieve.** Encode the semantic query using the same model and compatible settings as the indexed movie text. If reusing the dataset's BGE-M3 vectors, match their encoding configuration. Apply supported hard filters during retrieval, exclude the resolved reference movie when appropriate, and deduplicate candidates by movie ID. Start with approximately 20 candidate movies as a tunable setting.
 5. **Check constraints and rerank.** Load canonical records from Supabase, recheck hard constraints, and rank eligible candidates against soft preferences using their plot evidence. An unknown metadata value does not establish that a hard constraint is satisfied. Do not silently relax explicit requirements when too few candidates qualify.
 6. **Generate recommendations.** Ask the LLM to select up to five eligible candidates and explain the matches using retrieved evidence. Return valid candidate movie IDs and supporting fields or plot excerpts, and validate the response against the candidate set. These candidate and output counts are initial settings to tune during development.
 
@@ -96,7 +89,9 @@ For example, “similar to Interstellar, but with less science fiction and more 
 2. Clean plot text by removing formatting artifacts and normalizing whitespace. Standardize movie IDs, release dates, genres, cast, and director fields.
 3. Create retrieval documents from the cleaned plots and metadata, preserving movie IDs and source links. Split long plots into chunks linked to their original movie.
 4. Reuse existing embeddings only when they match the indexed text and movie IDs; generate new embeddings for modified text or new chunks using a consistent encoder.
-5. Store source files in Supabase Storage and cleaned records in Supabase Postgres, then build the vector index using shared movie IDs.
+5. Store cleaned records and aligned vectors in Supabase Postgres using shared movie IDs. Keep the source files and dataset revision at Hugging Face.
+
+The initial 5,000-movie import keeps whole plots because the supplied embeddings were computed from whole plots. Splitting plots into chunks later would require generating new chunk embeddings and updating the search schema.
 
 ## Milestones and completion criteria
 

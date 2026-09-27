@@ -27,7 +27,7 @@ Users will describe what they want to watch. The system will retrieve relevant m
 ## Proposed pipeline
 
 ```text
-Offline: Dataset → Cleaning → Supabase records → Movie embeddings → Vector index
+Offline: Dataset → Cleaning + aligned embeddings → Supabase pgvector catalog
 
 Online:  User request → Structured intent → Reference movie lookup (if needed)
                      → Query embedding + filters → Vector retrieval
@@ -37,17 +37,17 @@ Online:  User request → Structured intent → Reference movie lookup (if neede
 
 Recommendations should refer to retrieved movie records and avoid inventing plot details or metadata. When the dataset cannot support a requested constraint, the system should make that limitation clear.
 
-## Technology candidates
+## Technology choices
 
 FastAPI is selected for the backend, LangChain for RAG orchestration, and a gateway for user authentication. Other components remain under consideration.
 
 | Component | Candidate / decision needed |
 | --- | --- |
-| Dataset | A Hugging Face movie dataset, such as the Movie Plot Embeddings Dataset; verify the exact dataset, license, fields, and coverage before use |
+| Dataset | [Movie Plot Embeddings Dataset](https://huggingface.co/datasets/NiklasAbraham/MoviePlotEmbeddingsDataset), revision `3300dbea0b3c5891c48eb7c468116c1062ccb8a9` |
 | Retrieval | Semantic vector search with metadata filters and preference-based reranking |
 | Movie lookup | Supabase queries for reference titles and structured metadata |
-| Dataset storage | Supabase Storage for source files and Supabase Postgres for cleaned movie records |
-| Vector database | Qdrant, Pinecone, or pgvector |
+| Dataset storage | Supabase Postgres for the 5,000 cleaned records; full source files remain on Hugging Face |
+| Vector search | Supabase pgvector, with BGE-M3 query embeddings |
 | Language model | To be selected for query understanding and recommendation generation |
 | Frontend | Web interface; framework to be selected |
 | Gateway | User authentication between the frontend and backend; implementation to be selected |
@@ -56,9 +56,9 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, and a gate
 
 ## Development roadmap
 
-- [ ] Confirm the dataset, usage terms, and metadata coverage.
-- [ ] Define a normalized movie record and build an ingestion pipeline.
-- [ ] Implement a retrieval baseline and inspect results for representative requests.
+- [x] Confirm the dataset revision, license, and key metadata fields for the initial subset.
+- [x] Define a normalized movie record and import 5,000 records with aligned vectors.
+- [x] Implement pgvector retrieval and verify live title and vector searches.
 - [ ] Add LLM query understanding and evidence-grounded explanations.
 - [ ] Build the web interface and recommendation API.
 - [ ] Evaluate relevance, preference satisfaction, explanation faithfulness, and latency.
@@ -66,10 +66,10 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, and a gate
 
 ## Repository guide
 
-- `docs/project-plan.md`: proposed scope, milestones, and evaluation approach.
-- `.env.example`: placeholder for future local configuration.
+- `docs/project-plan.md`: architecture, data plan, and milestones.
+- `.env.example`: server-side configuration variable names.
 - `.gitignore`: excludes secrets, local environments, generated data, and build artifacts.
 
 ## Current status
 
-Project initialization only. This repository does not yet contain a runnable application, downloaded dataset, configured model, or evaluation results. Setup instructions will be added with the first implementation.
+The Python LangChain recommendation core, a FastAPI route factory, and a Supabase movie catalog are implemented. The project contains 5,000 cleaned movies with aligned BGE-M3 vectors in Supabase; the full source dataset remains on Hugging Face. The authentication gateway, frontend, and selected LLM credentials are pending integration. See [backend integration](docs/backend-integration.md) for the route and configuration contract.
