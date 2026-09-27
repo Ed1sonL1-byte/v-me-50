@@ -31,12 +31,12 @@ def optional_int(value: object) -> int | None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--limit", type=int, default=5000)
+    parser.add_argument("--limit", type=int, default=0, help="0 imports every eligible movie")
     parser.add_argument("--batch-size", type=int, default=20)
     parser.add_argument("--output", type=Path, default=Path("data/import_batches"))
     args = parser.parse_args()
-    if not 1 <= args.limit <= 10000 or not 1 <= args.batch_size <= 50:
-        raise ValueError("Use 1–10,000 movies and batches of 1–50.")
+    if args.limit < 0 or not 1 <= args.batch_size <= 50:
+        raise ValueError("Use limit 0 (all) or a positive count, and batches of 1–50.")
 
     def file(name: str) -> str:
         return hf_hub_download(REPO, name, repo_type="dataset", revision=REVISION)
@@ -53,10 +53,12 @@ def main() -> None:
         movies.movie_id.isin(id_to_vector_row)
         & movies.title.notna()
         & movies["plot"].notna()
-        & movies["plot"].str.len().ge(80)
+        & movies["plot"].str.strip().str.len().gt(0)
     ].copy()
     movies["vote_count"] = pd.to_numeric(movies.vote_count, errors="coerce").fillna(0)
-    movies = movies.sort_values(["vote_count", "movie_id"], ascending=[False, True]).head(args.limit)
+    movies = movies.sort_values(["vote_count", "movie_id"], ascending=[False, True])
+    if args.limit:
+        movies = movies.head(args.limit)
     args.output.mkdir(parents=True, exist_ok=True)
 
     batch: list[dict] = []
@@ -64,7 +66,7 @@ def main() -> None:
     for _, row in movies.iterrows():
         vector = np.asarray(embeddings[id_to_vector_row[row.movie_id]], dtype=np.float32)
         if not np.isfinite(vector).all() or not 0.95 <= np.linalg.norm(vector) <= 1.05:
-            continue
+            raise ValueError(f"Invalid vector for movie {row.movie_id}")
         wikipedia = row.wikipedia_link if isinstance(row.wikipedia_link, str) else None
         batch.append(
             {

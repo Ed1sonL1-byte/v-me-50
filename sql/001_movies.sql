@@ -12,7 +12,7 @@ create table if not exists public.movies (
     runtime_minutes integer,
     source_url text,
     dataset_revision text not null,
-    embedding extensions.vector(1024) not null,
+    embedding extensions.halfvec(1024) not null,
     check (length(title) > 0 and length(plot) > 0)
 );
 
@@ -57,7 +57,7 @@ returns table (
 language sql stable security invoker set search_path = '' as $$
     select m.movie_id, m.title, m.release_year, m.plot, m.genres,
            m.actors, m.directors, m.runtime_minutes, m.source_url,
-           1 - (m.embedding operator(extensions.<=>) query_embedding) as similarity
+           1 - (m.embedding operator(extensions.<=>) query_embedding::extensions.halfvec(1024)) as similarity
     from public.movies m
     where (min_release_year is null or m.release_year >= min_release_year)
       and (max_release_year is null or m.release_year <= max_release_year)
@@ -67,7 +67,7 @@ language sql stable security invoker set search_path = '' as $$
           select 1 from unnest(coalesce(excluded_genres, '{}')) excluded
           join unnest(m.genres) genre on position(lower(excluded) in lower(genre)) > 0
       )
-    order by m.embedding operator(extensions.<=>) query_embedding
+    order by m.embedding operator(extensions.<=>) query_embedding::extensions.halfvec(1024)
     limit least(greatest(match_count, 1), 100);
 $$;
 
