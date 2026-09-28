@@ -60,17 +60,39 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, and a gate
 - [x] Confirm the dataset revision, license, and key metadata fields.
 - [x] Define a normalized movie record and import all 92,374 records with aligned vectors.
 - [x] Implement pgvector retrieval and verify live title and vector searches.
-- [ ] Add LLM query understanding and evidence-grounded explanations.
-- [ ] Build the web interface and recommendation API.
+- [x] Implement modular LangChain intent, reference-query, retrieval, and selection stages with evidence-quote checks.
+- [x] Implement a runnable FastAPI application factory and recommendation API contract.
+- [ ] Configure a real LLM and validate the complete recommendation pipeline.
+- [ ] Build the web interface and gateway authentication.
 - [ ] Evaluate relevance, preference satisfaction, explanation faithfulness, and latency.
 - [ ] Prepare a reproducible demonstration and final project report.
 
 ## Repository guide
 
+- `src/v_me_50/rag/`: recommendation workflow and LangChain stages.
+- `src/v_me_50/adapters/`: BGE-M3, Supabase, and model-provider implementations.
+- `src/v_me_50/api/`: FastAPI routes, application lifecycle, and gateway integration.
+- `scripts/`: offline import and retrieval inspection commands using source modules.
+- `sql/`: catalog and retrieval migrations.
+- `tests/`: source-module, adapter, and API tests.
+- `docs/module-boundaries.md`: module responsibilities and dependencies.
+- `docs/project-status.md`: implemented components and remaining team work.
 - `docs/project-plan.md`: architecture, data plan, and milestones.
 - `.env.example`: server-side configuration variable names.
 - `.gitignore`: excludes secrets, local environments, generated data, and build artifacts.
 
 ## Current status
 
-The Python LangChain recommendation core, a FastAPI route factory, and a Supabase movie catalog are implemented. The project contains all 92,374 movies with aligned BGE-M3 vectors in Supabase; the source files remain on Hugging Face. The authentication gateway, frontend, and selected LLM credentials are pending integration. See [backend integration](docs/backend-integration.md) for the route and configuration contract.
+The modular LangChain core, a FastAPI application factory, and a Supabase movie catalog are implemented. The project contains all 92,374 movies with aligned BGE-M3 vectors in Supabase; the source files remain on Hugging Face. Offline tests cover the pipeline and HTTP integration; actual LLM generation, gateway authentication, frontend, and deployment remain pending. See [backend integration](docs/backend-integration.md) for the API contract and [project status](docs/project-status.md) for the handoff list.
+
+## Local setup
+
+Use Python 3.11 or newer and a virtual environment:
+
+```sh
+pip install -e '.[server,data,test]'
+pytest -q
+uvicorn v_me_50.app:create_app --factory --host 127.0.0.1 --port 8000
+```
+
+The application exposes `/health`, `/docs`, and `/openapi.json`. The default recommendation route returns HTTP 503 until the gateway's verification dependency is supplied. Server environment variables are listed in `.env.example`; the actual LLM pipeline requires the selected model and credentials. See [backend integration](docs/backend-integration.md) for the application factory integration example.

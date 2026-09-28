@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .genres import canonical_genre
+
 
 class HardFilters(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -14,7 +16,7 @@ class HardFilters(BaseModel):
     @field_validator("excluded_genres")
     @classmethod
     def clean_genres(cls, genres: list[str]) -> list[str]:
-        return [genre.strip().casefold() for genre in genres if genre.strip()]
+        return list(dict.fromkeys(canonical_genre(genre) for genre in genres if genre.strip()))
 
 
 class SoftPreferences(BaseModel):
@@ -25,13 +27,20 @@ class SoftPreferences(BaseModel):
 
 
 class Intent(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     reference_title: str | None = None
+    reference_year: int | None = Field(default=None, ge=1880, le=2100)
     semantic_query: str = Field(min_length=3, max_length=600)
     hard_filters: HardFilters = Field(default_factory=HardFilters)
     soft_preferences: SoftPreferences = Field(default_factory=SoftPreferences)
     exclude_reference_movie: bool = True
+
+
+class ReferenceQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    semantic_query: str = Field(min_length=3, max_length=600)
 
 
 class Movie(BaseModel):
@@ -55,8 +64,11 @@ class RetrievalResult(BaseModel):
 
 
 class SelectedMovie(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
     movie_id: str
     explanation: str = Field(min_length=1, max_length=1000)
+    evidence_quote: str = Field(min_length=1, max_length=1200)
 
 
 class Selection(BaseModel):
@@ -70,6 +82,7 @@ class Recommendation(BaseModel):
     genres: list[str]
     explanation: str
     evidence: str
+    evidence_quote: str
     source_url: str | None
 
 

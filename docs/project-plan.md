@@ -21,7 +21,7 @@ flowchart TB
     gateway["Gateway<br/>User authentication"]
     subgraph backend["FastAPI Backend - Python"]
         api["Recommendation API"]
-        chain["LangChain RAG Pipeline<br/>Parse intent, resolve reference title<br/>Embed query, retrieve, filter and select"]
+        chain["LangChain RAG Pipeline<br/>Parse intent, resolve reference and build query<br/>Embed, retrieve, filter, select and validate quotes"]
         api <-->|Request / recommendations with evidence| chain
     end
     frontend <-->|HTTPS request / response| gateway
@@ -51,7 +51,7 @@ flowchart TB
 
 Standalone Markdown diagram: [System architecture](../figures/system-architecture.md).
 
-This architecture is planned; the gateway, authentication flow, and FastAPI application have not yet been implemented.
+The LangChain source modules and FastAPI application factory are implemented. Gateway authentication, the frontend, deployment, and real LLM integration remain pending; see [project status](project-status.md).
 
 ## User input processing and recommendation flow
 
@@ -60,7 +60,7 @@ This architecture is planned; the gateway, authentication flow, and FastAPI appl
 3. **Build the semantic query.** Combine the user's desired themes with relevant evidence from the reference movie. Emphasize the requested aspects rather than copying the entire reference plot. Keep hard constraints and negative preferences separately so they are not lost in the embedding.
 4. **Embed and retrieve.** Encode the semantic query using the same model and compatible settings as the indexed movie text. If reusing the dataset's BGE-M3 vectors, match their encoding configuration. Apply supported hard filters during indexed candidate retrieval, rerank the shortlist with exact cosine distance on the original vectors, exclude the resolved reference movie when appropriate, and deduplicate candidates by movie ID. Start with approximately 20 candidate movies as a tunable setting.
 5. **Check constraints and rerank.** Load canonical records from Supabase, recheck hard constraints, and rank eligible candidates against soft preferences using their plot evidence. An unknown metadata value does not establish that a hard constraint is satisfied. Do not silently relax explicit requirements when too few candidates qualify.
-6. **Generate recommendations.** Ask the LLM to select up to five eligible candidates and explain the matches using retrieved evidence. Return valid candidate movie IDs and supporting fields or plot excerpts, and validate the response against the candidate set. These candidate and output counts are initial settings to tune during development.
+6. **Generate recommendations.** Ask the LLM to select up to five eligible candidates and explain the matches using retrieved evidence. Require a verbatim plot excerpt for each selection, validate the candidate ID and the excerpt against the retrieved record, and return canonical movie fields and evidence. These checks establish that the quote exists; real LLM testing still needs to assess whether each explanation is supported. Candidate and output counts are initial settings to tune during development.
 
 For example, “similar to Interstellar, but with less science fiction and more focus on family relationships” could initially produce:
 

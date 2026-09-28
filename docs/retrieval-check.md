@@ -47,7 +47,9 @@ The vector ranking also includes semantic near misses. A college reunion and rom
 
 No retrieved plot foregrounds heavy science fiction, but some genre fields are empty. The soft avoidance was preserved in the intent and would be passed to the LLM selector; it was not enforced or independently scored in this retrieval-only run. The absence of a genre value does not prove that a movie has no science-fiction elements.
 
-This run validates the supplied family-theme query. The resolved reference record currently supports lookup and exclusion; it does not automatically produce a new reference-aware semantic query from the full `Interstellar` plot in this path. Real LLM intent parsing, preference selection, explanation generation, and factual grounding still need end-to-end validation with a configured provider.
+This run validates the supplied family-theme query. The inspection path preserves that query and uses the reference for lookup and exclusion. The full recommendation pipeline now has a separate reference-aware query builder using retrieved plot evidence, but that LLM stage was not run in this inspection. Real LLM intent parsing, query construction, preference selection, explanation generation, and factual grounding still need end-to-end validation with a configured provider.
+
+After splitting the source modules, the same inspection was rerun three times and returned the identical ordered Top 20 in 3.654, 0.365, and 0.208 seconds. Model initialization took 8.20 seconds. These remain retrieval-only measurements; the real provider's LLM stages are not included.
 
 ## Reproduce
 

@@ -1,8 +1,10 @@
-"""Interfaces owned by the RAG module; gateway and data adapters implement them."""
+"""Storage, encoder, and recommendation contracts without framework dependencies."""
 
-from typing import Protocol
+from typing import Any, Protocol
 
-from .models import HardFilters, Movie
+from pydantic import BaseModel
+
+from .models import HardFilters, Movie, RecommendationResponse
 
 
 class MovieRepository(Protocol):
@@ -20,3 +22,13 @@ class MovieRepository(Protocol):
 
 class QueryEmbedder(Protocol):
     def embed_query(self, text: str) -> list[float]: ...
+
+
+class RecommendationService(Protocol):
+    def recommend(self, request: str) -> RecommendationResponse: ...
+
+
+class StructuredChatModel(Protocol):
+    def with_structured_output(self, schema: type[BaseModel]) -> Any:
+        """Return a LangChain-compatible structured-output runnable."""
+        ...

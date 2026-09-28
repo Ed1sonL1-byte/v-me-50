@@ -2,16 +2,12 @@
 
 import argparse
 import json
-import os
 import time
 from pathlib import Path
 
-import httpx
-
-from v_me_50.embedding import BGEM3QueryEmbedder
-from v_me_50.engine import retrieve_candidates
+from v_me_50.errors import RepositoryUnavailable
+from v_me_50.factory import create_retriever
 from v_me_50.models import Intent
-from v_me_50.supabase_repository import SupabaseMovieRepository
 
 
 def main() -> None:
@@ -25,24 +21,20 @@ def main() -> None:
         raise ValueError("Use limit 1–100 and runs 1–10.")
     intent = Intent.model_validate_json(args.intent.read_text())
     start = time.perf_counter()
-    embedder = BGEM3QueryEmbedder()
+    retriever = create_retriever(candidate_limit=args.limit)
     model_load_seconds = time.perf_counter() - start
-    repository = SupabaseMovieRepository(
-        url=os.environ["SUPABASE_URL"],
-        publishable_key=os.environ["SUPABASE_PUBLISHABLE_KEY"],
-    )
     timings: list[float] = []
     orders: list[tuple[str, ...]] = []
     try:
         for _ in range(args.runs):
             start = time.perf_counter()
-            result = retrieve_candidates(intent, embedder=embedder, repository=repository, candidate_limit=args.limit)
+            result = retriever.retrieve(intent)
             timings.append(round(time.perf_counter() - start, 3))
             orders.append(tuple(movie.movie_id for movie in result.candidates))
-    except httpx.HTTPStatusError as exc:
-        raise RuntimeError(f"Supabase RPC failed ({exc.response.status_code}): {exc.response.text[:1000]}") from exc
+    except RepositoryUnavailable as exc:
+        raise RuntimeError("Live Supabase retrieval failed.") from exc
     finally:
-        repository.close()
+        retriever.close()
     payload = {
         "stage": "retrieval_only_no_llm_selection",
         "intent": intent.model_dump(),

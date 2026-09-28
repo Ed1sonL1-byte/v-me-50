@@ -1,6 +1,6 @@
 # V Me 50 - System Architecture
 
-The first 5,000 movie records and BGE-M3 vectors are in Supabase Postgres. The LangChain core and FastAPI router are implemented. Gateway authentication, frontend, and LLM credentials remain to be integrated.
+All 92,374 movie records and BGE-M3 vectors are in Supabase Postgres. The modular LangChain core and FastAPI application factory are implemented. Gateway authentication, frontend, deployment, and real LLM credentials remain to be integrated.
 
 ```mermaid
 flowchart TB
@@ -8,7 +8,7 @@ flowchart TB
     gateway["Gateway<br/>User authentication"]
     subgraph backend["FastAPI Backend - Python"]
         api["Recommendation API"]
-        chain["LangChain RAG Pipeline<br/>Parse intent, resolve reference title<br/>Embed query, retrieve, filter and select"]
+        chain["LangChain RAG Pipeline<br/>Parse intent, resolve reference and build query<br/>Embed, retrieve, filter, select and validate quotes"]
         api <-->|Request / recommendations with evidence| chain
     end
     frontend <-->|HTTPS request / response| gateway
@@ -16,7 +16,7 @@ flowchart TB
     chain <-->|Title lookup and filtered vector search| postgres[("Supabase Postgres + pgvector<br/>Movie records and vectors")]
     chain <-->|Intent and recommendation prompts / structured output| llm["LLM provider - to be configured"]
 
-    subgraph ingestion["Dataset Import - first 5,000 movies complete"]
+    subgraph ingestion["Dataset Import - all 92,374 movies complete"]
         dataset["Hugging Face<br/>MoviePlotEmbeddingsDataset"]
         clean["Validate movie IDs<br/>Normalize records<br/>Reuse aligned BGE-M3 vectors"]
         dataset -->|Source CSV and NumPy files| clean
