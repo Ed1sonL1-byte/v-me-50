@@ -51,7 +51,7 @@ flowchart TB
 
 Standalone Markdown diagram: [System architecture](../figures/system-architecture.md).
 
-The LangChain source modules and FastAPI application factory are implemented. Gateway authentication, the frontend, deployment, and real LLM integration remain pending; see [project status](project-status.md).
+The LangChain source modules, FastAPI application factory, and React/TypeScript frontend are implemented. The frontend displays recommendations, source evidence, request states, and title clarification; its gateway login/session adapters are configurable. Gateway authentication, deployment, and real LLM integration remain pending; see [project status](project-status.md) and [frontend setup](../frontend/README.md).
 
 ## User input processing and recommendation flow
 

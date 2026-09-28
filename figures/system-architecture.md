@@ -1,6 +1,6 @@
 # V Me 50 - System Architecture
 
-All 92,374 movie records and BGE-M3 vectors are in Supabase Postgres. The modular LangChain core and FastAPI application factory are implemented. Gateway authentication, frontend, deployment, and real LLM credentials remain to be integrated.
+All 92,374 movie records and BGE-M3 vectors are in Supabase Postgres. The modular LangChain core, FastAPI application factory, and React/TypeScript frontend are implemented. Gateway authentication, deployment, real LLM credentials, and complete authenticated integration remain pending. See [frontend setup](../frontend/README.md) for the configurable gateway contracts.
 
 ```mermaid
 flowchart TB

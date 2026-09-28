@@ -20,6 +20,11 @@ node_modules/
 dist/
 build/
 coverage/
+*.tsbuildinfo
+
+# Local browser verification artifacts
+output/playwright/
+.playwright-cli/
 
 # Local data, indexes, and logs
 data/

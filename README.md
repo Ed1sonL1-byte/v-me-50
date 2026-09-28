@@ -40,7 +40,7 @@ Recommendations should refer to retrieved movie records and avoid inventing plot
 
 ## Technology choices
 
-FastAPI is selected for the backend, LangChain for RAG orchestration, and a gateway for user authentication. Other components remain under consideration.
+FastAPI is selected for the backend, LangChain for RAG orchestration, React and TypeScript for the frontend, and a gateway for user authentication.
 
 | Component | Candidate / decision needed |
 | --- | --- |
@@ -50,7 +50,7 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, and a gate
 | Dataset storage | Supabase Postgres for all 92,374 cleaned records and vectors; source files remain on Hugging Face |
 | Vector search | Supabase pgvector `halfvec(1024)` with a compact binary HNSW index and BGE-M3 query embeddings |
 | Language model | To be selected for query understanding and recommendation generation |
-| Frontend | Web interface; framework to be selected |
+| Frontend | React + TypeScript + Vite, with recommendations and source-evidence display |
 | Gateway | User authentication between the frontend and backend; implementation to be selected |
 | Backend | Python with FastAPI for the recommendation API and RAG orchestration |
 | RAG orchestration | LangChain within FastAPI for intent parsing, query embedding, filtered retrieval, reranking, and LLM calls |
@@ -63,7 +63,8 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, and a gate
 - [x] Implement modular LangChain intent, reference-query, retrieval, and selection stages with evidence-quote checks.
 - [x] Implement a runnable FastAPI application factory and recommendation API contract.
 - [ ] Configure a real LLM and validate the complete recommendation pipeline.
-- [ ] Build the web interface and gateway authentication.
+- [x] Build the responsive web interface and configurable gateway API client.
+- [ ] Implement gateway authentication and connect its login/session endpoints.
 - [ ] Evaluate relevance, preference satisfaction, explanation faithfulness, and latency.
 - [ ] Prepare a reproducible demonstration and final project report.
 
@@ -75,6 +76,7 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, and a gate
 - `scripts/`: offline import and retrieval inspection commands using source modules.
 - `sql/`: catalog and retrieval migrations.
 - `tests/`: source-module, adapter, and API tests.
+- `frontend/`: React application with separate API, authentication, and recommendation modules.
 - `docs/module-boundaries.md`: module responsibilities and dependencies.
 - `docs/project-status.md`: implemented components and remaining team work.
 - `docs/project-plan.md`: architecture, data plan, and milestones.
@@ -83,7 +85,7 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, and a gate
 
 ## Current status
 
-The modular LangChain core, a FastAPI application factory, and a Supabase movie catalog are implemented. The project contains all 92,374 movies with aligned BGE-M3 vectors in Supabase; the source files remain on Hugging Face. Offline tests cover the pipeline and HTTP integration; actual LLM generation, gateway authentication, frontend, and deployment remain pending. See [backend integration](docs/backend-integration.md) for the API contract and [project status](docs/project-status.md) for the handoff list.
+The modular LangChain core, FastAPI application factory, Supabase movie catalog, and React frontend are implemented. All 92,374 movies and aligned BGE-M3 vectors are in Supabase; source files remain on Hugging Face. The frontend supports natural-language search, ranked results, plot evidence, cancellation, errors, and title clarification. Its separate sample preview uses explicitly labelled manual explanations. Actual LLM generation, gateway authentication, deployment, and full integration remain pending. See [frontend setup](frontend/README.md), [backend integration](docs/backend-integration.md), and [project status](docs/project-status.md).
 
 ## Local setup
 
@@ -96,3 +98,13 @@ uvicorn v_me_50.app:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
 The application exposes `/health`, `/docs`, and `/openapi.json`. The default recommendation route returns HTTP 503 until the gateway's verification dependency is supplied. Server environment variables are listed in `.env.example`; the actual LLM pipeline requires the selected model and credentials. See [backend integration](docs/backend-integration.md) for the application factory integration example.
+
+Start the frontend in another terminal using Node.js 24 LTS:
+
+```sh
+cd frontend
+npm ci
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. The development proxy forwards `/api` to `http://127.0.0.1:8000`; configure the real gateway and optional login/session endpoints with `frontend/.env.example`. The sample preview is available without credentials.

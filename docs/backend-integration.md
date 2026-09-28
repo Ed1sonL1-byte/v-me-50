@@ -6,7 +6,7 @@ The RAG workflow is in `src/v_me_50/rag`, service adapters are in `adapters`, an
 
 | Component | Provided interface | Remaining integration |
 | --- | --- | --- |
-| Frontend | `POST /v1/recommendations` with a raw `query`; typed JSON recommendation response | Send requests through the gateway and display results, evidence, errors, and loading states |
+| Frontend | React client consumes `POST /v1/recommendations` with a raw `query`; typed JSON response | Configure the actual gateway API prefix, login URL, and optional session path; validate authenticated requests |
 | Gateway | `verified_user` dependency passed to `recommendation_router(engine, verified_user)` | Verify the gateway-issued identity/session and return a nonempty trusted user ID |
 | FastAPI backend | `create_app(verified_user=...)`, `create_engine()`, and the router factory; `engine.recommend(query)` for internal use | Supply verified authentication, configure model credentials and hosting, and deploy |
 

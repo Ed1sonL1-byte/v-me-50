@@ -39,6 +39,7 @@ src/v_me_50/
 | API | Validate HTTP input, invoke the recommendation service, and translate failures | FastAPI, contracts, and the service protocol |
 | Composition | Read server configuration, create adapters, and own their lifetime | Settings, adapters, and RAG |
 | Scripts | Parse command-line options, run offline imports or source-module checks, and write inspection artifacts | Import tools or the source composition root |
+| Frontend | Capture requests, consume the gateway API, and render recommendations, evidence, and request states | React and the public HTTP contract; separate API, auth, and recommendation modules |
 
 RAG modules do not read environment variables or issue HTTP/SQL requests directly. API routes do not implement prompts or retrieval. Supabase and encoder implementations can be replaced by another implementation of the same ports. An injected gateway dependency verifies the principal before the recommendation service is called.
 
@@ -56,4 +57,6 @@ The selector requests an exact plot quote for each choice. It rejects IDs outsid
 
 The source modules have 31 passing offline tests, including an HTTP-to-LangChain workflow using a fake model and repository. A real Uvicorn process served health and OpenAPI requests, while unconfigured gateway authentication blocked recommendation requests. The refactored retrieval module also returned the same 20 live Supabase candidates on three successive checks.
 
-These checks do not substitute for a real LLM run. The deployed provider, credentials, gateway, and frontend are still pending. See [project status](project-status.md) for the remaining work.
+The React frontend is implemented in `frontend/src`: `app` composes the page, `api` owns transport and runtime schemas, and `features/auth` and `features/recommendations` separate the user flows. Request lifecycle logic cancels pending calls and ignores stale responses. See [frontend module ownership](../frontend/README.md#module-ownership).
+
+These checks do not substitute for a real LLM run. The deployed provider, credentials, gateway, and full authenticated integration are still pending. See [project status](project-status.md) for the remaining work.
