@@ -89,22 +89,76 @@ The modular LangChain core, FastAPI application factory, Supabase movie catalog,
 
 ## Local setup
 
-Use Python 3.11 or newer and a virtual environment:
+Use Python 3.11 or newer and Node.js 24 LTS. Start from the repository root. The frontend and backend run in separate terminals; the gateway is a separate integration that has not been implemented yet.
+
+### First-time installation
+
+Create the Python environment and install backend dependencies:
 
 ```sh
-pip install -e '.[server,data,test]'
-pytest -q
-uvicorn v_me_50.app:create_app --factory --host 127.0.0.1 --port 8000
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[server,data,test]'
 ```
 
-The application exposes `/health`, `/docs`, and `/openapi.json`. The default recommendation route returns HTTP 503 until the gateway's verification dependency is supplied. Server environment variables are listed in `.env.example`; the actual LLM pipeline requires the selected model and credentials. See [backend integration](docs/backend-integration.md) for the application factory integration example.
-
-Start the frontend in another terminal using Node.js 24 LTS:
+Install frontend dependencies:
 
 ```sh
 cd frontend
 npm ci
+```
+
+For local configuration, copy the root `.env.example` to `.env` and `frontend/.env.example` to `frontend/.env` if those files do not already exist. Keep existing credentials and configuration. The frontend defaults work without a configuration file; health, API documentation, and the sample preview do not require model credentials.
+
+### Terminal 1: backend
+
+Run from the repository root:
+
+```sh
+source .venv/bin/activate
+python -m uvicorn v_me_50.app:create_app --factory --app-dir src --reload --host 127.0.0.1 --port 8000
+```
+
+- Health: `http://127.0.0.1:8000/health`
+- API documentation: `http://127.0.0.1:8000/docs`
+- OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
+
+The backend does not automatically load `.env`. When configuring the actual model and catalog, fill in the root `.env` from `.env.example`, then export it in this terminal **before** starting Uvicorn:
+
+```sh
+set -a
+source .env
+set +a
+```
+
+The default recommendation route returns HTTP 503 until the gateway's verified authentication dependency is supplied, even with valid model credentials. `/health` confirms that the process is running; it does not mean authentication or the model is ready. See [backend integration](docs/backend-integration.md) for wiring the gateway dependency.
+
+### Terminal 2: frontend
+
+Open a second terminal at the repository root:
+
+```sh
+cd frontend
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`. The development proxy forwards `/api` to `http://127.0.0.1:8000`; configure the real gateway and optional login/session endpoints with `frontend/.env.example`. The sample preview is available without credentials.
+Open `http://127.0.0.1:5173` and click **See a sample** to inspect the interface. This explicitly labelled preview works without the backend. The development proxy forwards `/api` to `http://127.0.0.1:8000`; configure the real gateway and optional login/session endpoints using `frontend/.env.example`. Vite loads `frontend/.env` automatically; restart the frontend after changing configuration.
+
+Stop either service with `Ctrl+C` in its terminal. If port 5173 or 8000 is already in use, check for an existing development server and stop it before restarting.
+
+### Checks and production build
+
+From the repository root with the Python environment activated:
+
+```sh
+python -m pytest -q
+```
+
+From `frontend/`:
+
+```sh
+npm test
+npm run build
+```
+
+The frontend build is written to `frontend/dist/`. `npm run preview` serves that build locally, but does not provide the development `/api` proxy. Real recommendations require the configured gateway, backend, LLM, and movie catalog; running the two local processes alone does not enable authentication or real LLM generation.

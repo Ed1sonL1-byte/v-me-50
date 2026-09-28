@@ -9,11 +9,14 @@ Use Node.js 24 LTS:
 ```sh
 cd frontend
 npm ci
-cp .env.example .env
 npm run dev
 ```
 
 Open `http://127.0.0.1:5173`. `npm run build` checks TypeScript and creates `dist/`. `npm test` checks API contracts and recommendation interactions. `npm run preview` serves the static build. The development proxy is not part of production builds or the preview server.
+
+Run these commands from the repository root before entering `frontend/`. On later starts, dependencies are already installed, so only `cd frontend` and `npm run dev` are needed. Configuration is optional for the default local target; to customize it, copy `.env.example` to `.env` inside `frontend/` only if `.env` does not already exist, edit the values, and restart Vite. Keep model credentials out of this frontend file.
+
+The sample preview works without any backend. For local API requests, start the backend in another terminal using the [root README startup instructions](../README.md#terminal-1-backend). The default backend returns 503 until gateway authentication is integrated. Use `Ctrl+C` to stop the frontend; if port 5173 is already occupied, an existing development server may still be running.
 
 ## Gateway integration
 
