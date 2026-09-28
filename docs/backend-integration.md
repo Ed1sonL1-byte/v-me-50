@@ -2,6 +2,16 @@
 
 The RAG module is in `src/v_me_50`. It exposes a FastAPI router and leaves the gateway authentication implementation to the backend team. No identity value supplied directly in a client header is trusted by this module.
 
+## Team handoff points
+
+| Component | Provided interface | Remaining integration |
+| --- | --- | --- |
+| Frontend | `POST /v1/recommendations` with a raw `query`; typed JSON recommendation response | Send requests through the gateway and display results, evidence, errors, and loading states |
+| Gateway | `verified_user` dependency passed to `recommendation_router(engine, verified_user)` | Verify the gateway-issued identity/session and return a nonempty trusted user ID |
+| FastAPI backend | `create_engine()` and the router factory; `engine.recommend(query)` for internal use | Mount the router, configure LLM credentials, and manage server lifecycle |
+
+The structured intent is an internal RAG contract, not a second public frontend endpoint. It uses nested `soft_preferences.prefer` and `soft_preferences.avoid`, as shown in `examples/family-intent.json`. `retrieve_candidates(intent, embedder=..., repository=...)` runs the same retrieval stage without requiring an LLM and is available for inspection and integration tests. The auth dependency is an extension point; actual user login and gateway token verification are not implemented here.
+
 ## API contract
 
 Mount `recommendation_router(engine, verified_user)` under a FastAPI app. The `verified_user` dependency must validate the gateway's authenticated principal and return a nonempty user ID; authentication is a prerequisite to this route. Do not mount the router with a dependency that merely reads an unverified request header.
@@ -42,3 +52,5 @@ The catalog table and search functions are read-only for `anon` and `authenticat
 The catalog contains all 92,374 films from the pinned [dataset revision](https://huggingface.co/datasets/NiklasAbraham/MoviePlotEmbeddingsDataset/tree/3300dbea0b3c5891c48eb7c468116c1062ccb8a9). Vectors use pgvector `halfvec(1024)` to remain within the [Free Plan's 500 MB database limit](https://supabase.com/docs/guides/platform/database-size). The source CSV is over Supabase Free Storage's [50 MB per-file upload limit](https://supabase.com/docs/guides/storage/uploads/file-limits), so the full source files remain at Hugging Face and in the local download cache. The Supabase catalog contains complete cleaned plots, metadata, and vectors, and each row records the source revision. The [source dataset](https://huggingface.co/datasets/NiklasAbraham/MoviePlotEmbeddingsDataset) is licensed CC BY-NC 4.0 and requires attribution to the dataset and its underlying sources. Full-table exact vector search exceeded Supabase's statement timeout; this version uses a compact binary HNSW index to shortlist candidates and exact cosine distance to rerank them. Database use is about 447 MB including the index; two live RPC searches completed in 2–3 seconds each, but broader relevance and latency evaluation remains necessary.
 
 The RAG core has passed local tests with fake model/repository adapters, and live Supabase title and vector searches have succeeded. Full LLM generation and the gateway authentication flow still require downstream credentials and integration.
+
+For a real retrieval-only example and its limitations, see [the family-theme query check](retrieval-check.md). `sql/004_fetch_ranked_records.sql` keeps full plot retrieval after candidate ranking to reduce work during vector search.

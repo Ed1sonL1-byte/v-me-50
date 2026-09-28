@@ -17,14 +17,20 @@ class HardFilters(BaseModel):
         return [genre.strip().casefold() for genre in genres if genre.strip()]
 
 
+class SoftPreferences(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    prefer: list[str] = Field(default_factory=list, max_length=8)
+    avoid: list[str] = Field(default_factory=list, max_length=8)
+
+
 class Intent(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     reference_title: str | None = None
     semantic_query: str = Field(min_length=3, max_length=600)
     hard_filters: HardFilters = Field(default_factory=HardFilters)
-    prefer: list[str] = Field(default_factory=list, max_length=8)
-    avoid: list[str] = Field(default_factory=list, max_length=8)
+    soft_preferences: SoftPreferences = Field(default_factory=SoftPreferences)
     exclude_reference_movie: bool = True
 
 
@@ -41,6 +47,11 @@ class Movie(BaseModel):
     runtime_minutes: int | None = None
     source_url: str | None = None
     similarity: float | None = None
+
+
+class RetrievalResult(BaseModel):
+    reference: Movie | None = None
+    candidates: list[Movie]
 
 
 class SelectedMovie(BaseModel):

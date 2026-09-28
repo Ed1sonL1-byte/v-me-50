@@ -3,7 +3,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 
-from .models import HardFilters, Intent, Movie, Recommendation, RecommendationResponse, Selection
+from .models import HardFilters, Intent, Movie, Recommendation, RecommendationResponse, RetrievalResult, Selection
 from .ports import MovieRepository, QueryEmbedder
 
 
@@ -12,7 +12,8 @@ INTENT_PROMPT = ChatPromptTemplate.from_messages(
         (
             "system",
             "Extract movie preferences into the requested schema. Preserve positive and negative "
-            "preferences separately. Only explicit requirements belong in hard_filters; phrases "
+            "preferences separately under soft_preferences.prefer and soft_preferences.avoid. "
+            "Only explicit requirements belong in hard_filters; phrases "
             "like 'less sci-fi' are soft avoidance, while 'no sci-fi' is an excluded genre. "
             "Use a concise semantic_query describing what the user WANTS; do not invent themes. "
             "Extract a named reference movie into reference_title, but never invent its plot. "
@@ -68,6 +69,45 @@ def passes_filters(movie: Movie, filters: HardFilters) -> bool:
     )
 
 
+def retrieve_candidates(
+    intent: Intent,
+    *,
+    embedder: QueryEmbedder,
+    repository: MovieRepository,
+    candidate_limit: int = 20,
+) -> RetrievalResult:
+    """Run the same live retrieval stage independently of LLM parsing and selection."""
+    filters = intent.hard_filters
+    if filters.min_year and filters.max_year and filters.min_year > filters.max_year:
+        raise ValueError("Minimum year cannot exceed maximum year.")
+    reference: Movie | None = None
+    if intent.reference_title:
+        matches = repository.find_by_title(intent.reference_title)
+        if not matches:
+            raise UnknownReference(f"Reference movie '{intent.reference_title}' was not found.")
+        if len(matches) > 1:
+            raise AmbiguousReference(intent.reference_title, matches)
+        reference = matches[0]
+
+    query = intent.semantic_query.strip()
+    if reference is not None and not intent.soft_preferences.prefer and query.casefold() == reference.title.casefold():
+        query = reference.plot[:600]
+    vector = embedder.embed_query(query)
+    if len(vector) != 1024:
+        raise ValueError("Query embedding must contain 1024 dimensions.")
+    candidates = repository.search(
+        vector,
+        filters,
+        exclude_movie_id=reference.movie_id if reference and intent.exclude_reference_movie else None,
+        limit=candidate_limit,
+    )
+    unique: dict[str, Movie] = {}
+    for movie in candidates:
+        if movie.movie_id not in unique and passes_filters(movie, filters):
+            unique[movie.movie_id] = movie
+    return RetrievalResult(reference=reference, candidates=list(unique.values()))
+
+
 class RecommendationEngine:
     def __init__(
         self,
@@ -89,35 +129,12 @@ class RecommendationEngine:
             raise ValueError("Request must contain 3 to 1000 characters.")
 
         intent = Intent.model_validate(self.parse_intent.invoke({"request": request}))
-        filters = intent.hard_filters
-        if filters.min_year and filters.max_year and filters.min_year > filters.max_year:
-            raise ValueError("Minimum year cannot exceed maximum year.")
-
-        reference: Movie | None = None
-        if intent.reference_title:
-            matches = self.repository.find_by_title(intent.reference_title)
-            if not matches:
-                raise UnknownReference(f"Reference movie '{intent.reference_title}' was not found.")
-            if len(matches) > 1:
-                raise AmbiguousReference(intent.reference_title, matches)
-            reference = matches[0]
-
-        query = intent.semantic_query.strip()
-        if reference is not None and not intent.prefer and query.casefold() == reference.title.casefold():
-            query = reference.plot[:600]
-        vector = self.embedder.embed_query(query)
-        if len(vector) != 1024:
-            raise ValueError("Query embedding must contain 1024 dimensions.")
-        candidates = self.repository.search(
-            vector,
-            filters,
-            exclude_movie_id=reference.movie_id if reference and intent.exclude_reference_movie else None,
-            limit=self.candidate_limit,
+        retrieved = retrieve_candidates(
+            intent, embedder=self.embedder, repository=self.repository,
+            candidate_limit=self.candidate_limit,
         )
-        unique: dict[str, Movie] = {}
-        for movie in candidates:
-            if movie.movie_id not in unique and passes_filters(movie, filters):
-                unique[movie.movie_id] = movie
+        reference = retrieved.reference
+        unique = {movie.movie_id: movie for movie in retrieved.candidates}
         if not unique:
             return RecommendationResponse(
                 recommendations=[],

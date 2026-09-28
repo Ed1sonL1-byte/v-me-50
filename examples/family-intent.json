@@ -1,0 +1,10 @@
+{
+  "reference_title": "Interstellar",
+  "semantic_query": "Family bonds, parent-child relationships, separation, sacrifice and reunion",
+  "hard_filters": {},
+  "soft_preferences": {
+    "prefer": ["family relationships"],
+    "avoid": ["heavy science-fiction elements"]
+  },
+  "exclude_reference_movie": true
+}

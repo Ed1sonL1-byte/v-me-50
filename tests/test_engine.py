@@ -1,7 +1,7 @@
 from langchain_core.runnables import RunnableLambda
 import pytest
 
-from v_me_50.engine import AmbiguousReference, RecommendationEngine, passes_filters
+from v_me_50.engine import AmbiguousReference, RecommendationEngine, passes_filters, retrieve_candidates
 from v_me_50.models import HardFilters, Intent, Movie, Selection
 
 
@@ -61,8 +61,7 @@ def test_reference_excluded_hard_filters_rechecked_and_unlisted_selection_droppe
             reference_title="Interstellar",
             semantic_query="Family bonds after separation",
             hard_filters=HardFilters(excluded_genres=["science fiction"]),
-            prefer=["family relationships"],
-            avoid=["space travel"],
+            soft_preferences={"prefer": ["family relationships"], "avoid": ["space travel"]},
         ),
         Selection(
             recommendations=[
@@ -84,6 +83,20 @@ def test_reference_excluded_hard_filters_rechecked_and_unlisted_selection_droppe
 
 def test_unknown_metadata_fails_hard_filter():
     assert not passes_filters(movie("Q4", "Unknown", runtime=None), HardFilters(max_runtime_minutes=120))
+
+
+def test_parsed_intent_retrieval_can_run_without_llm():
+    reference = movie("Q1", "Interstellar")
+    candidate = movie("Q2", "Family Journey")
+    result = retrieve_candidates(
+        Intent(
+            reference_title="Interstellar", semantic_query="Family bonds and reunion",
+            soft_preferences={"prefer": ["family"], "avoid": ["heavy sci-fi"]},
+        ),
+        embedder=FakeEmbedder(), repository=FakeRepository([reference, candidate], [reference]),
+    )
+    assert result.reference.movie_id == "Q1"
+    assert [m.movie_id for m in result.candidates] == ["Q2"]
 
 
 def test_ambiguous_reference_requires_clarification():
