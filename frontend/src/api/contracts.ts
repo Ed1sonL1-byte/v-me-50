@@ -5,6 +5,8 @@ export const recommendationSchema = z.object({
   title: z.string().min(1),
   year: z.number().int().nullable(),
   genres: z.array(z.string()),
+  actors: z.array(z.string()).optional(),
+  directors: z.array(z.string()).optional(),
   explanation: z.string().min(1),
   evidence: z.string().min(1),
   evidence_quote: z.string().min(1),

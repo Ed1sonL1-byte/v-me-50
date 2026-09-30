@@ -56,4 +56,4 @@ src/
 └── test/setup.ts                 # Test environment
 ```
 
-The backend RAG modules own intent parsing, embeddings, retrieval, and selection. The frontend consumes the public HTTP contract and renders evidence. Real gateway login and real LLM recommendations still require integrated validation.
+The backend RAG modules own intent parsing, embeddings, retrieval, and selection. The frontend consumes the public HTTP contract and renders evidence. A direct local DeepSeek + Supabase RAG request succeeds; real gateway login and frontend requests with model-generated recommendations still require integrated validation.

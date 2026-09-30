@@ -26,8 +26,8 @@ flowchart TB
     end
     frontend <-->|HTTPS request / response| gateway
     gateway <-->|Authenticated request / response| api
-    chain <-->|Title lookup and filtered vector search| postgres[("Supabase Postgres + pgvector<br/>Movie records and vectors")]
-    chain <-->|Intent and recommendation prompts / structured output| llm["LLM provider - to be configured"]
+    chain <-->|Title/person lookup and filtered vector search| postgres[("Supabase Postgres + pgvector<br/>Movie records and vectors")]
+    chain <-->|Intent and recommendation prompts / structured output| llm["DeepSeek V4.1 Flash<br/>Locally configured"]
 
     subgraph ingestion["Dataset Import - all 92,374 movies complete"]
         dataset["Hugging Face<br/>MoviePlotEmbeddingsDataset"]
@@ -51,14 +51,14 @@ flowchart TB
 
 Standalone Markdown diagram: [System architecture](../figures/system-architecture.md).
 
-The LangChain source modules, FastAPI application factory, and React/TypeScript frontend are implemented. The frontend displays recommendations, source evidence, request states, and title clarification; its gateway login/session adapters are configurable. Gateway authentication, deployment, and real LLM integration remain pending; see [project status](project-status.md) and [frontend setup](../frontend/README.md).
+The LangChain source modules, FastAPI application factory, and React/TypeScript frontend are implemented. The frontend displays recommendations, source evidence, request states, and title clarification; its gateway login/session adapters are configurable. One direct DeepSeek + Supabase RAG request has been validated locally. Gateway authentication, deployment, and the authenticated frontend-to-backend flow remain pending; see [project status](project-status.md) and [frontend setup](../frontend/README.md).
 
 ## User input processing and recommendation flow
 
 1. **Parse intent.** Use an LLM to extract a semantic query, reference movie title (if any), hard filters, and soft preferences. Validate the structured output in FastAPI against allowed fields, types, and operators before building database queries. Preserve the original request for the final preference check.
 2. **Resolve reference movies.** Look up named movies in Supabase and read their actual plots and metadata. Ask for clarification when a title is ambiguous or cannot be resolved reliably; do not invent a reference plot.
 3. **Build the semantic query.** Combine the user's desired themes with relevant evidence from the reference movie. Emphasize the requested aspects rather than copying the entire reference plot. Keep hard constraints and negative preferences separately so they are not lost in the embedding.
-4. **Embed and retrieve.** Encode the semantic query using the same model and compatible settings as the indexed movie text. If reusing the dataset's BGE-M3 vectors, match their encoding configuration. Apply supported hard filters during indexed candidate retrieval, rerank the shortlist with exact cosine distance on the original vectors, exclude the resolved reference movie when appropriate, and deduplicate candidates by movie ID. Start with approximately 20 candidate movies as a tunable setting.
+4. **Embed and retrieve.** Encode the semantic query using the same model and compatible settings as the indexed movie text. If reusing the dataset's BGE-M3 vectors, match their encoding configuration. For a named actor or director, first match the cast/crew metadata and rank only those movies by plot-vector similarity. Other requests use indexed candidate retrieval with supported hard filters and exact cosine reranking. Exclude the resolved reference movie when appropriate and deduplicate candidates by movie ID. Start with approximately 20 candidate movies as a tunable setting.
 5. **Check constraints and rerank.** Load canonical records from Supabase, recheck hard constraints, and rank eligible candidates against soft preferences using their plot evidence. An unknown metadata value does not establish that a hard constraint is satisfied. Do not silently relax explicit requirements when too few candidates qualify.
 6. **Generate recommendations.** Ask the LLM to select up to five eligible candidates and explain the matches using retrieved evidence. Require a verbatim plot excerpt for each selection, validate the candidate ID and the excerpt against the retrieved record, and return canonical movie fields and evidence. These checks establish that the quote exists; real LLM testing still needs to assess whether each explanation is supported. Candidate and output counts are initial settings to tune during development.
 

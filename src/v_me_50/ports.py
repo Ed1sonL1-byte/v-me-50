@@ -4,11 +4,13 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel
 
-from .models import HardFilters, Movie, RecommendationResponse
+from .models import HardFilters, Movie, PersonConstraint, RecommendationResponse
 
 
 class MovieRepository(Protocol):
     def find_by_title(self, title: str) -> list[Movie]: ...
+
+    def find_by_person(self, person: PersonConstraint, embedding: list[float], *, limit: int) -> list[Movie]: ...
 
     def search(
         self,

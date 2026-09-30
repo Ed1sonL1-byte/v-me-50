@@ -53,6 +53,12 @@ export function EvidenceDialog({
         <p className="dialog-meta">
           {movie.year ?? "Year unavailable"} · Movie ID {movie.movie_id}
         </p>
+        {!!movie.actors?.length && (
+          <p className="dialog-meta">Cast: {movie.actors.join(", ")}</p>
+        )}
+        {!!movie.directors?.length && (
+          <p className="dialog-meta">Director: {movie.directors.join(", ")}</p>
+        )}
         <h3>Why it matches</h3>
         <p>{movie.explanation}</p>
         <h3>Quoted evidence</h3>

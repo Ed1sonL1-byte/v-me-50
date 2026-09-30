@@ -1,5 +1,7 @@
 """Stable contracts shared with the gateway and the recommendation API."""
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .genres import canonical_genre
@@ -26,6 +28,13 @@ class SoftPreferences(BaseModel):
     avoid: list[str] = Field(default_factory=list, max_length=8)
 
 
+class PersonConstraint(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=2, max_length=100)
+    role: Literal["actor", "director", "either"] = "either"
+
+
 class Intent(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -34,6 +43,7 @@ class Intent(BaseModel):
     semantic_query: str = Field(min_length=3, max_length=600)
     hard_filters: HardFilters = Field(default_factory=HardFilters)
     soft_preferences: SoftPreferences = Field(default_factory=SoftPreferences)
+    people: list[PersonConstraint] = Field(default_factory=list, max_length=4)
     exclude_reference_movie: bool = True
 
 
@@ -80,6 +90,8 @@ class Recommendation(BaseModel):
     title: str
     year: int | None
     genres: list[str]
+    actors: list[str] = Field(default_factory=list)
+    directors: list[str] = Field(default_factory=list)
     explanation: str
     evidence: str
     evidence_quote: str

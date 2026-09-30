@@ -2,6 +2,7 @@
 
 import os
 from collections.abc import Mapping
+from typing import Literal
 
 from pydantic import AnyHttpUrl, BaseModel, Field, SecretStr, ValidationError
 
@@ -43,6 +44,8 @@ class LLMSettings(BaseModel):
     base_url: AnyHttpUrl | None = None
     timeout_seconds: float = Field(default=30, gt=0, le=120)
     max_retries: int = Field(default=2, ge=0, le=5)
+    structured_output_method: Literal["json_schema", "function_calling"] = "json_schema"
+    thinking_mode: Literal["enabled", "disabled"] | None = None
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "LLMSettings":
@@ -54,6 +57,8 @@ class LLMSettings(BaseModel):
                 base_url=env.get("OPENAI_BASE_URL") or None,
                 timeout_seconds=env.get("LLM_TIMEOUT_SECONDS", "30"),
                 max_retries=env.get("LLM_MAX_RETRIES", "2"),
+                structured_output_method=env.get("LLM_STRUCTURED_OUTPUT_METHOD", "json_schema"),
+                thinking_mode=env.get("LLM_THINKING_MODE") or None,
             )
         except ValidationError:
             raise ConfigurationError("Invalid LLM configuration.") from None

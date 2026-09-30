@@ -54,11 +54,18 @@ class MovieRetriever:
         if len(vector) != 1024 or not all(math.isfinite(value) for value in vector) or not any(vector):
             raise ModelUnavailable("Query embedding must be a finite, nonzero 1024-dimensional vector.")
         excluded_id = reference.movie_id if reference and intent.exclude_reference_movie else None
-        candidates = self.repository.search(vector, filters, exclude_movie_id=excluded_id, limit=self.candidate_limit)
+        if intent.people:
+            person_results = [self.repository.find_by_person(person, vector, limit=100) for person in intent.people]
+            matching_ids = set.intersection(*(set(movie.movie_id for movie in rows) for rows in person_results))
+            candidates = [movie for movie in person_results[0] if movie.movie_id in matching_ids]
+        else:
+            candidates = self.repository.search(vector, filters, exclude_movie_id=excluded_id, limit=self.candidate_limit)
         unique: dict[str, Movie] = {}
         for movie in candidates:
             if movie.movie_id != excluded_id and movie.movie_id not in unique and passes_filters(movie, filters):
                 unique[movie.movie_id] = movie
+            if len(unique) >= self.candidate_limit:
+                break
         return RetrievalResult(reference=reference, candidates=list(unique.values()))
 
     def retrieve(self, intent: Intent) -> RetrievalResult:

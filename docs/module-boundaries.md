@@ -47,7 +47,7 @@ RAG modules do not read environment variables or issue HTTP/SQL requests directl
 
 The complete code path is `IntentParser → reference resolution → ReferenceQueryBuilder → MovieRetriever → RecommendationSelector`. For a request without a reference movie, query construction uses the parsed semantic query directly. For a reference title with a supplied year, resolution filters title matches by that year.
 
-Retrieval checks year, runtime, and genre constraints again after the database response. Genre aliases such as `sci-fi`, `sci fi`, and `science fiction film` share a canonical meaning; the database adapter also expands aliases for SQL filtering. Unknown required metadata does not satisfy a hard constraint. The reference movie is excluded locally as well as in the database when requested.
+Retrieval checks year, runtime, and genre constraints again after the database response. Explicit actor/director names take a metadata-first path: the catalog matches the relevant cast/crew array, then the matching movies are ranked with their existing plot vectors. Genre aliases such as `sci-fi`, `sci fi`, and `science fiction film` share a canonical meaning; the database adapter also expands aliases for SQL filtering. Unknown required metadata does not satisfy a hard constraint. The reference movie is excluded locally as well as in the database when requested.
 
 The selector requests an exact plot quote for each choice. It rejects IDs outside the displayed candidate set, duplicate choices, and quotes that do not occur in the source plot after whitespace normalization. This checks citation existence, not whether every explanation claim logically follows from its quote. Actual preference satisfaction and explanation accuracy still require real LLM testing. Selection context is capped at 80,000 characters, with at most 5,000 plot characters per candidate; full retrieved plots remain available in returned evidence.
 
@@ -55,8 +55,8 @@ The selector requests an exact plot quote for each choice. It rejects IDs outsid
 
 ## Verified status
 
-The source modules have 31 passing offline tests, including an HTTP-to-LangChain workflow using a fake model and repository. A real Uvicorn process served health and OpenAPI requests, while unconfigured gateway authentication blocked recommendation requests. The refactored retrieval module also returned the same 20 live Supabase candidates on three successive checks.
+The source modules have 31 existing passing offline tests, including an HTTP-to-LangChain workflow using a fake model and repository. A real Uvicorn process served health and OpenAPI requests, while unconfigured gateway authentication blocked recommendation requests. Direct DeepSeek + Supabase runs returned five recommendations for both a family-theme request and a named-actor request.
 
 The React frontend is implemented in `frontend/src`: `app` composes the page, `api` owns transport and runtime schemas, and `features/auth` and `features/recommendations` separate the user flows. Request lifecycle logic cancels pending calls and ignores stale responses. See [frontend module ownership](../frontend/README.md#module-ownership).
 
-These checks do not substitute for a real LLM run. The deployed provider, credentials, gateway, and full authenticated integration are still pending. See [project status](project-status.md) for the remaining work.
+These checks do not substitute for broader recommendation-quality evaluation. A direct local DeepSeek + Supabase RAG request has succeeded; the deployed provider configuration, gateway, and full authenticated integration are still pending. See [project status](project-status.md) for the remaining work.
