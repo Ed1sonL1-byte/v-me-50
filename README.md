@@ -30,7 +30,7 @@ Users will describe what they want to watch. The system will retrieve relevant m
 Offline: Dataset → Cleaning + aligned embeddings → Supabase halfvec catalog + binary HNSW index
 
 Online:  User request → Structured intent → Reference movie lookup (if needed)
-                     → Query embedding + filters → Indexed candidate retrieval
+                     → Query embedding + filters → Semantic or named-person candidate retrieval
                      → Exact cosine reranking on candidate vectors
                      → Constraint checks + preference reranking
                      → Recommendations with supporting evidence
@@ -49,7 +49,7 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, React and 
 | Movie lookup | Supabase queries for reference titles and structured metadata |
 | Dataset storage | Supabase Postgres for all 92,374 cleaned records and vectors; source files remain on Hugging Face |
 | Vector search | Supabase pgvector `halfvec(1024)` with a compact binary HNSW index and BGE-M3 query embeddings |
-| Language model | To be selected for query understanding and recommendation generation |
+| Language model | DeepSeek V4.1 Flash (`deepseek-flash`) through its OpenAI-compatible API, configured server-side |
 | Frontend | React + TypeScript + Vite, with recommendations and source-evidence display |
 | Gateway | User authentication between the frontend and backend; implementation to be selected |
 | Backend | Python with FastAPI for the recommendation API and RAG orchestration |
@@ -60,9 +60,9 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, React and 
 - [x] Confirm the dataset revision, license, and key metadata fields.
 - [x] Define a normalized movie record and import all 92,374 records with aligned vectors.
 - [x] Implement pgvector retrieval and verify live title and vector searches.
-- [x] Implement modular LangChain intent, reference-query, retrieval, and selection stages with evidence-quote checks.
+- [x] Implement modular LangChain intent, reference-query, semantic/person retrieval, and selection stages with evidence-quote checks.
 - [x] Implement a runnable FastAPI application factory and recommendation API contract.
-- [ ] Configure a real LLM and validate the complete recommendation pipeline.
+- [x] Configure DeepSeek V4.1 Flash locally and validate a direct RAG request through Supabase.
 - [x] Build the responsive web interface and configurable gateway API client.
 - [ ] Implement gateway authentication and connect its login/session endpoints.
 - [ ] Evaluate relevance, preference satisfaction, explanation faithfulness, and latency.
@@ -85,7 +85,7 @@ FastAPI is selected for the backend, LangChain for RAG orchestration, React and 
 
 ## Current status
 
-The modular LangChain core, FastAPI application factory, Supabase movie catalog, and React frontend are implemented. All 92,374 movies and aligned BGE-M3 vectors are in Supabase; source files remain on Hugging Face. The frontend supports natural-language search, ranked results, plot evidence, cancellation, errors, and title clarification. Its separate sample preview uses explicitly labelled manual explanations. Actual LLM generation, gateway authentication, deployment, and full integration remain pending. See [frontend setup](frontend/README.md), [backend integration](docs/backend-integration.md), and [project status](docs/project-status.md).
+The modular LangChain core, FastAPI application factory, Supabase movie catalog, and React frontend are implemented. All 92,374 movies and aligned BGE-M3 vectors are in Supabase; source files remain on Hugging Face. The frontend supports natural-language search, ranked results, plot evidence, cancellation, errors, and title clarification. Its separate sample preview uses explicitly labelled manual explanations. Local direct RAG requests using DeepSeek V4.1 Flash and Supabase return evidence-checked recommendations; named actor/director requests use catalog metadata before ranking. Gateway authentication, deployment, and frontend-to-backend integration remain pending. See [frontend setup](frontend/README.md), [backend integration](docs/backend-integration.md), and [project status](docs/project-status.md).
 
 ## Local setup
 
@@ -123,7 +123,7 @@ python -m uvicorn v_me_50.app:create_app --factory --app-dir src --reload --host
 - API documentation: `http://127.0.0.1:8000/docs`
 - OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
 
-The backend does not automatically load `.env`. When configuring the actual model and catalog, fill in the root `.env` from `.env.example`, then export it in this terminal **before** starting Uvicorn:
+The backend does not automatically load `.env`. The local `.env` contains the DeepSeek key and the Supabase publishable key; it is ignored by Git. For a new setup, fill it in from `.env.example`. Export it in the backend terminal **before** starting Uvicorn:
 
 ```sh
 set -a
@@ -131,7 +131,7 @@ source .env
 set +a
 ```
 
-The default recommendation route returns HTTP 503 until the gateway's verified authentication dependency is supplied, even with valid model credentials. `/health` confirms that the process is running; it does not mean authentication or the model is ready. See [backend integration](docs/backend-integration.md) for wiring the gateway dependency.
+The example uses the official DeepSeek model ID `deepseek-flash`, its API URL, LangChain function calling, and non-thinking mode. The existing `OPENAI_*` variable names refer to the OpenAI-compatible client library, not an OpenAI account. The default recommendation route returns HTTP 503 until the gateway's verified authentication dependency is supplied, even with valid model credentials. `/health` confirms that the process is running; it does not mean authentication or the model is ready. See [backend integration](docs/backend-integration.md) for wiring the gateway dependency.
 
 ### Terminal 2: frontend
 
@@ -161,4 +161,4 @@ npm test
 npm run build
 ```
 
-The frontend build is written to `frontend/dist/`. `npm run preview` serves that build locally, but does not provide the development `/api` proxy. Real recommendations require the configured gateway, backend, LLM, and movie catalog; running the two local processes alone does not enable authentication or real LLM generation.
+The frontend build is written to `frontend/dist/`. `npm run preview` serves that build locally, but does not provide the development `/api` proxy. The direct backend RAG pipeline has been validated with DeepSeek and Supabase; frontend recommendations still require the gateway's verified authentication integration.

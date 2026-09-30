@@ -20,8 +20,9 @@ class RecommendationSelector:
         remaining = 80000
         for movie in candidates:
             record = movie.model_dump(exclude={"similarity"})
-            record["actors"] = movie.actors[:20]
-            record["directors"] = movie.directors[:10]
+            matched_names = {person.name.casefold() for person in intent.people}
+            record["actors"] = sorted(movie.actors, key=lambda name: name.casefold() not in matched_names)[:20]
+            record["directors"] = sorted(movie.directors, key=lambda name: name.casefold() not in matched_names)[:10]
             record["plot"] = movie.plot[:min(5000, max(0, remaining - 1500))]
             size = len(json.dumps(record, ensure_ascii=False))
             if not record["plot"] or size > remaining:
@@ -49,6 +50,7 @@ class RecommendationSelector:
             seen.add(movie.movie_id)
             result.append(Recommendation(
                 movie_id=movie.movie_id, title=movie.title, year=movie.year, genres=movie.genres,
+                actors=movie.actors, directors=movie.directors,
                 explanation=selected.explanation, evidence=movie.plot, evidence_quote=quote,
                 source_url=movie.source_url,
             ))
