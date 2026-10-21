@@ -1,0 +1,7 @@
+{
+  "query_id": "scifi_after_2000",
+  "semantic_query": "Science fiction movies involving adventure and exploration.",
+  "hard_filters": {
+    "min_year": 2001
+  }
+}

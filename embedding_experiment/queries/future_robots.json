@@ -1,0 +1,6 @@
+{
+  "query_id": "future_robots",
+  "semantic_query": "Movies set in a futuristic world, with robots playing a central role in the story.",
+  "hard_filters": {},
+  "relevance_criterion": "The plot must support both a futuristic setting and an important role for robots. A future setting alone, aliens alone, or a passing mention of robots is not sufficient. If the plot lacks enough evidence, mark insufficient evidence."
+}
